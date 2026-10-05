@@ -1,0 +1,20 @@
+{
+  "name": "Prayer Times — for every faith",
+  "short_name": "Prayer",
+  "description": "Location-aware prayer times for every faith with reminders, prayer timer, checklists, intentions and daily scripture.",
+  "start_url": "./index.html#today",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f3ee",
+  "theme_color": "#2b3a67",
+  "orientation": "portrait",
+  "categories": ["lifestyle", "education"],
+  "icons": [
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Prayer timer", "url": "./index.html#timer" },
+    { "name": "Checklist", "url": "./index.html#checklist" }
+  ]
+}
