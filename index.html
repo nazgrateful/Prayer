@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Prayer Times</title>
+  <meta name="description" content="Free prayer times for every faith — location-aware times, reminders, prayer timer, checklists, intentions and daily scripture.">
+  <meta name="theme-color" content="#f6f3ee" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#14161a" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon.svg">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><img src="icons/icon.svg" alt="" width="28" height="28"><span>Prayer</span><span id="trad-symbols" class="muted"></span></div>
+    <button id="place" class="place-btn" title="Change location">Set location</button>
+  </header>
+
+  <main id="view" class="view" tabindex="-1"></main>
+
+  <nav class="tabbar" aria-label="Main">
+    <button data-view="today"><span aria-hidden="true">☀</span>Today</button>
+    <button data-view="timer"><span aria-hidden="true">⏱</span>Timer</button>
+    <button data-view="checklist"><span aria-hidden="true">☑</span>Checklist</button>
+    <button data-view="reflect"><span aria-hidden="true">✎</span>Reflect</button>
+    <button data-view="settings"><span aria-hidden="true">⚙</span>Settings</button>
+  </nav>
+
+  <dialog id="onboarding" class="onboarding"><div id="onb-body"></div></dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <noscript><p style="padding:2rem">This app needs JavaScript to calculate prayer times.</p></noscript>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
