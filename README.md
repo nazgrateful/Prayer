@@ -2,6 +2,12 @@
 
 A **free, private, installable web app** for daily prayer in any tradition. It has no ads, no accounts, and no tracking, and it works offline after the first visit.
 
+<p align="center">
+  <img src="docs/screenshots/today.png" width="220" alt="Today screen">
+  <img src="docs/screenshots/today-dark.png" width="220" alt="Today screen, dark mode">
+  <img src="docs/screenshots/timer.png" width="220" alt="Prayer timer">
+</p>
+
 ## Features
 
 | | |
