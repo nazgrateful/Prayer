@@ -1,6 +1,6 @@
 {
   "name": "prayer",
-  "version": "1.0.0",
+  "version": "1.4.0",
   "private": true,
   "description": "Free prayer-times app for all religions — location-aware times, notifications, timers, checklists, intentions and daily scripture.",
   "type": "module",

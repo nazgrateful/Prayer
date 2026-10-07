@@ -162,3 +162,18 @@ export function undoRestore() {
   localStorage.removeItem(SAFETY_KEY);
   return true;
 }
+
+const isIOS = () => typeof navigator !== 'undefined' && (/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
+
+/** Plain-language advice on keeping data safe (HTML list). */
+export function keepDataTips() {
+  const erase = isIOS()
+    ? 'Deleting the app from your Home Screen, or clearing website data in <em>Settings › Safari › Advanced › Website Data</em>, erases it.'
+    : 'Uninstalling the app, or clearing this site’s data in your browser settings, erases it.';
+  return `<ul class="tips">
+    <li><strong>Updates never erase your data.</strong> They install by themselves — just keep using the app.</li>
+    <li>Your data is kept <strong>only on this phone</strong>, inside this app. ${erase}</li>
+    <li><strong>Save a backup</strong> every now and then, and always before changing phones, reinstalling the app or changing its icon.</li>
+    <li>On a new phone, open the app and use <strong>Restore from file</strong> to get everything back.</li>
+  </ul>`;
+}

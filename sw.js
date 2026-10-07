@@ -1,5 +1,5 @@
 // Service worker: offline cache + notification click handling.
-const CACHE = 'prayer-v8';
+const CACHE = 'prayer-v9';
 const ASSETS = [
   './',
   './index.html',
@@ -30,6 +30,7 @@ const ASSETS = [
   './js/views/settings.js',
   './js/views/timer.js',
   './js/views/today.js',
+  './js/version.js',
 ];
 
 // Optional adhan recordings — cached for offline use when present.

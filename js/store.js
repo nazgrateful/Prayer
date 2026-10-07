@@ -41,6 +41,7 @@ export const DEFAULT_STATE = {
   },
   fired: {}, // notification de-duplication
   lastBackup: null, // ISO time of the last backup saved or copied
+  seenVersion: null, // app version whose "what's new" the user has seen
   adhan: {
     mode: 'full', // 'full' | 'short' | 'silent' — default for every prayer
     shortSeconds: 20, // length of the "first part" before fading out

@@ -12,6 +12,11 @@ import { seedChecklists } from './checklist.js';
 
 let openSection = null;
 
+/** Open a settings section next time Settings is shown (e.g. from the update message). */
+export function focusSection(id) {
+  openSection = id;
+}
+
 /** Save a new location and adapt calculation settings to the region. */
 export function applyLocation(loc) {
   const d = regionalDefaults(loc.timeZone, loc.lat);
@@ -506,6 +511,10 @@ export function render(root, nav) {
       <summary class="small">Restore from copied text</summary>
       <textarea id="restore-text" rows="4" placeholder="Paste the backup text here"></textarea>
       <button class="btn" id="restore-text-btn">Restore</button>
+    </details>
+    <details class="keep-tips">
+      <summary class="small">How to keep your data safe</summary>
+      ${backup.keepDataTips()}
     </details>
     ${backup.hasUndo() ? '<button class="link-btn" id="restore-undo">Undo last restore</button><br>' : ''}
     <button class="link-btn danger" id="reset">Reset app</button>
