@@ -3,7 +3,7 @@
 // The storage key never changes, so existing users keep their data across
 // updates. Changes to the data's shape are handled by `migrate()` below.
 const KEY = 'prayer-app-v1';
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 export const DEFAULT_STATE = {
   version: SCHEMA_VERSION,
@@ -29,13 +29,23 @@ export const DEFAULT_STATE = {
   intentions: {}, // { '2026-10-05': { 'islam.fajr': 'text' } }
   favorites: [], // quote refs
   timer: { minutes: 10, interval: 0 },
-  counter: { count: 0, target: 33 },
+  counter: { count: 0, target: 33 }, // v1/v2 single counter — kept for safety, superseded by `dhikr`
+  dhikr: {
+    active: null, // phrase key, e.g. 'islam.subhanallah', 'custom.ab12cd' or 'free'; null = first phrase
+    autoAdvance: true, // move to the next phrase of the same tradition when a round completes
+    targets: {}, // { phraseKey: n } — user overrides of the default target
+    round: {}, // { phraseKey: count in the current round }
+    log: {}, // { '2026-10-07': { phraseKey: n } } — repetitions per day
+    totals: {}, // { phraseKey: n } — all-time
+    custom: [], // [{ id, text, meaning, target }]
+  },
   fired: {}, // notification de-duplication
   adhan: {
     mode: 'full', // 'full' | 'short' | 'silent' — default for every prayer
     shortSeconds: 20, // length of the "first part" before fading out
     volume: 0.9,
     perPrayer: {}, // { fajr: 'silent' | 'short' | 'full' | 'default' }
+    voice: null, // built-in muezzin id from audio/catalog.json, 'custom', or null = automatic
   },
 };
 
@@ -48,7 +58,14 @@ export function migrate(saved) {
   const out = { ...saved };
   const from = out.version || 1;
   // v1 → v2: adhan settings added. Defaults are filled in by merge(); nothing to convert.
-  if (from < 2) out.version = 2;
+  // v2 → v3: the single counter became the remembrance (dhikr) counter.
+  //          Its count and target carry over to the "free count".
+  if (from < 3 && !out.dhikr && out.counter && typeof out.counter === 'object') {
+    const count = Math.max(0, +out.counter.count || 0);
+    const target = Math.max(1, +out.counter.target || 33);
+    out.dhikr = { ...structuredClone(DEFAULT_STATE.dhikr), active: count ? 'free' : null, targets: { free: target }, round: { free: count % target }, totals: count ? { free: count } : {} };
+  }
+  out.version = Math.max(from, SCHEMA_VERSION);
   return out;
 }
 

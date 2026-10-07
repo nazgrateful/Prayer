@@ -2,13 +2,13 @@ import * as store from '../store.js';
 import { $, esc, toast } from '../core.js';
 import { formatDuration } from '../tz.js';
 import { chime, show } from '../notify.js';
+import { render as renderDhikr } from './dhikr.js';
 
 // Timer state lives at module level so it keeps running while you switch tabs.
 const T = { label: 'Prayer', total: 0, remaining: 0, endsAt: 0, running: false, lastBell: 0 };
 let tick = null;
 let wakeLock = null;
 const PRESETS = [3, 5, 10, 15, 20, 30, 45, 60];
-const TARGETS = [10, 33, 50, 99, 100, 108];
 
 export function startTimerFor(prayer) {
   setTimer(prayer.duration || 10, prayer.name);
@@ -83,7 +83,6 @@ function paint() {
 export function render(root) {
   const s = store.get();
   if (!T.total) T.total = T.remaining = s.timer.minutes * 60000;
-  const c = s.counter;
   const C = 2 * Math.PI * 90;
 
   root.innerHTML = `
@@ -113,34 +112,16 @@ export function render(root) {
     <p class="muted small">The screen stays awake while the timer runs (where supported).</p>
   </section>
 
-  <section class="card center">
-    <span class="eyebrow">Counter · tasbīḥ · rosary · mala · japa</span>
-    <button class="counter-btn" id="counter" aria-label="Count">
-      <span id="count">${c.count}</span>
-      <small>of ${c.target}</small>
-    </button>
-    <div class="chips">
-      ${TARGETS.map((n) => `<button class="chip ${c.target === n ? 'on' : ''}" data-target="${n}">${n}</button>`).join('')}
-    </div>
-    <div class="hero-actions">
-      <button class="btn" id="counter-undo">−1</button>
-      <button class="btn" id="counter-reset">Reset</button>
-    </div>
-  </section>`;
+  <section class="card center" id="dhikr"></section>`;
 
   paint();
+  renderDhikr($('#dhikr', root));
 
   root.onclick = (e) => {
+    if (e.target.closest('#dhikr')) return; // handled by the remembrance counter
     const min = e.target.closest('[data-min]')?.dataset.min;
-    const target = e.target.closest('[data-target]')?.dataset.target;
     if (min) {
       setTimer(+min);
-      return render(root);
-    }
-    if (target) {
-      store.update((st) => {
-        st.counter.target = +target;
-      });
       return render(root);
     }
     switch (e.target.closest('button')?.id) {
@@ -152,18 +133,6 @@ export function render(root) {
         stop();
         T.remaining = T.total;
         paint();
-        break;
-      case 'counter':
-        bump(1);
-        break;
-      case 'counter-undo':
-        bump(-1);
-        break;
-      case 'counter-reset':
-        store.update((st) => {
-          st.counter.count = 0;
-        });
-        $('#count').textContent = '0';
         break;
     }
   };
@@ -180,21 +149,6 @@ export function render(root) {
   $('#timer-label').oninput = (e) => {
     T.label = e.target.value || 'Prayer';
   };
-
-  function bump(n) {
-    store.update((st) => {
-      st.counter.count = Math.max(0, st.counter.count + n);
-    });
-    const { count, target } = store.get().counter;
-    $('#count').textContent = String(count);
-    if (n > 0) {
-      if (count > 0 && count % target === 0) {
-        navigator.vibrate?.([80, 60, 80]);
-        chime(1);
-        toast(`${count} — round complete`);
-      } else navigator.vibrate?.(15);
-    }
-  }
 
   // Keep painting when the view is visible (interval runs regardless).
   return () => {};

@@ -4,16 +4,34 @@
       <stop offset="0" stop-color="#2b3a67"/>
       <stop offset="1" stop-color="#c8875b"/>
     </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffe7a8"/>
+      <stop offset="1" stop-color="#ffd98a" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="skin" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#fbe9cf"/>
+      <stop offset="1" stop-color="#f1cfa3"/>
+    </linearGradient>
+    <!-- One hand; the other is its mirror image -->
+    <g id="hand">
+      <path d="M256 150 C268 152 280 170 285 196 L303 290 C307 312 322 326 337 342 C352 358 357 382 350 404 L340 446 L256 446 Z"
+            fill="url(#skin)" stroke="#1d2440" stroke-width="9" stroke-linejoin="round"/>
+      <path d="M264 300 C276 316 290 330 300 350" fill="none" stroke="#1d2440" stroke-width="7" stroke-linecap="round" opacity=".55"/>
+      <path d="M270 232 L284 236 M266 262 L290 268" fill="none" stroke="#1d2440" stroke-width="6" stroke-linecap="round" opacity=".35"/>
+    </g>
   </defs>
   <rect width="512" height="512" rx="112" fill="url(#sky)"/>
-  <circle cx="256" cy="300" r="92" fill="#ffd98a"/>
-  <g stroke="#ffd98a" stroke-width="18" stroke-linecap="round">
-    <line x1="256" y1="150" x2="256" y2="110"/>
-    <line x1="150" y1="194" x2="122" y2="166"/>
-    <line x1="362" y1="194" x2="390" y2="166"/>
-    <line x1="106" y1="300" x2="66" y2="300"/>
-    <line x1="406" y1="300" x2="446" y2="300"/>
+  <circle cx="256" cy="250" r="190" fill="url(#glow)" opacity=".55"/>
+  <circle cx="256" cy="250" r="118" fill="#ffd98a"/>
+  <g stroke="#ffd98a" stroke-width="16" stroke-linecap="round">
+    <line x1="256" y1="96" x2="256" y2="62"/>
+    <line x1="140" y1="138" x2="114" y2="112"/>
+    <line x1="372" y1="138" x2="398" y2="112"/>
+    <line x1="92" y1="250" x2="58" y2="250"/>
+    <line x1="420" y1="250" x2="454" y2="250"/>
   </g>
-  <rect x="0" y="330" width="512" height="182" fill="#1d2440" opacity=".92"/>
-  <path d="M0 330h512" stroke="#ffd98a" stroke-width="6" opacity=".6"/>
+  <path d="M0 400 H512 V400 Q512 512 400 512 H112 Q0 512 0 400 Z" fill="#1d2440" opacity=".92"/>
+  <use href="#hand"/>
+  <use href="#hand" transform="translate(512 0) scale(-1 1)"/>
+  <line x1="256" y1="160" x2="256" y2="440" stroke="#1d2440" stroke-width="6" stroke-linecap="round"/>
 </svg>

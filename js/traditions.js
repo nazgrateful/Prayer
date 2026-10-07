@@ -16,7 +16,7 @@ export const ISLAMIC_METHODS = {
   MWL: { name: 'Muslim World League', fajr: 18, isha: 17 },
   ISNA: { name: 'Islamic Society of North America', fajr: 15, isha: 15 },
   Egypt: { name: 'Egyptian General Authority of Survey', fajr: 19.5, isha: 17.5 },
-  Makkah: { name: 'Umm al-Qura, Makkah', fajr: 18.5, ishaMinutes: 90 },
+  Makkah: { name: 'Umm al-Qura, Makkah', fajr: 18.5, ishaMinutes: 90, ramadanIshaMinutes: 120 },
   Karachi: { name: 'University of Islamic Sciences, Karachi', fajr: 18, isha: 18 },
   Tehran: { name: 'Institute of Geophysics, Tehran', fajr: 17.7, isha: 14, maghrib: 4.5, midnight: 'jafari' },
   Jafari: { name: 'Shia Ithna-Ashari (Jafari)', fajr: 16, isha: 14, maghrib: 4, midnight: 'jafari' },
@@ -28,6 +28,16 @@ export const ISLAMIC_METHODS = {
   Turkey: { name: 'Diyanet, Turkey', fajr: 18, isha: 17 },
   Russia: { name: 'Spiritual Administration of Muslims of Russia', fajr: 16, isha: 15 },
 };
+
+/** Hijri (Umm al-Qura) month number 1–12 for a civil date, or null if unsupported. */
+export function hijriMonth({ year, month, day }) {
+  try {
+    const parts = new Intl.DateTimeFormat('en-u-ca-islamic-umalqura-nu-latn', { month: 'numeric', timeZone: 'UTC' }).formatToParts(new Date(Date.UTC(year, month - 1, day, 12)));
+    return +parts.find((p) => p.type === 'month').value || null;
+  } catch {
+    return null;
+  }
+}
 
 // Region → sensible defaults, chosen from the IANA time zone of the location.
 const REGION_RULES = [
@@ -153,7 +163,8 @@ function islamSchedule(ctx) {
   let asr = sun.asr(s.asr === 'hanafi' ? 2 : 1);
   if (!asr || asr <= dhuhr || asr >= sunset) asr = between(dhuhr, sunset, 0.5);
   const maghrib = method.maghrib ? clampEvening(sun.dusk(method.maghrib), method.maghrib) : sunset;
-  const isha = method.ishaMinutes ? plus(maghrib, method.ishaMinutes) : clampEvening(sun.dusk(method.isha), method.isha);
+  const ishaMinutes = method.ramadanIshaMinutes && hijriMonth(ctx.date) === 9 ? method.ramadanIshaMinutes : method.ishaMinutes;
+  const isha = ishaMinutes ? plus(maghrib, ishaMinutes) : clampEvening(sun.dusk(method.isha), method.isha);
   const nightEnd = clampMorning(sun.nextDawn(method.fajr), method.fajr, sun.nextSunrise());
   const lastThird = between(sunset, nightEnd, 2 / 3);
   const friday = ctx.weekday === 5;

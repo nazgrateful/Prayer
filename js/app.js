@@ -139,7 +139,7 @@ let pendingAdhan = null;
 
 async function playAdhan(prayerId, name, mode) {
   const s = store.get();
-  const r = await adhan.play(prayerId, { mode, shortSeconds: s.adhan.shortSeconds, volume: s.adhan.volume, title: `Adhan · ${name}` });
+  const r = await adhan.play(prayerId, { mode, shortSeconds: s.adhan.shortSeconds, volume: s.adhan.volume, voice: s.adhan.voice, title: `Adhan · ${name}` });
   if (r.status === 'blocked') {
     pendingAdhan = { prayerId, name, mode };
     showAdhanBar(`Adhan for ${name}`, '▶ Play');

@@ -52,7 +52,7 @@ test('upgrading writes a backup of the old data and persists the new version', (
   store.load();
   assert.equal(mem.get('prayer-app-v1.backup-v1'), raw, 'backup must be byte-for-byte identical');
   const persisted = JSON.parse(mem.get('prayer-app-v1'));
-  assert.equal(persisted.version, 2);
+  assert.equal(persisted.version, store.SCHEMA_VERSION);
   for (const [k, v] of Object.entries(V1_SAVE)) assert.deepEqual(persisted[k], v);
 });
 
@@ -105,4 +105,44 @@ test('adhan mode: per-prayer overrides, default, and non-adhan prayers', () => {
   assert.equal(modeFor(a, 'sunrise'), 'silent');
   assert.equal(modeFor({ mode: 'bogus', perPrayer: {} }, 'dhuhr'), 'full');
   assert.deepEqual(ADHAN_PRAYERS, ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha']);
+});
+
+test('the old counter carries over into the remembrance counter', () => {
+  mem.set('prayer-app-v1', JSON.stringify(V1_SAVE)); // counter: 66 of 33
+  const s = store.load();
+  assert.deepEqual(s.counter, V1_SAVE.counter, 'old field left untouched');
+  assert.equal(s.dhikr.totals.free, 66);
+  assert.equal(s.dhikr.targets.free, 33);
+  assert.equal(s.dhikr.round.free, 0);
+  assert.equal(s.dhikr.active, 'free');
+  assert.deepEqual(store.DEFAULT_STATE.dhikr.totals, {}, 'defaults not mutated');
+});
+
+test('a v2 save (with adhan settings) upgrades to v3 and keeps everything', () => {
+  const v2 = { ...V1_SAVE, version: 2, counter: { count: 7, target: 99 }, adhan: { mode: 'short', shortSeconds: 15, volume: 0.5, perPrayer: { fajr: 'silent' }, voice: 'custom' } };
+  const raw = JSON.stringify(v2);
+  mem.set('prayer-app-v1', raw);
+  const s = store.load();
+  for (const [k, v] of Object.entries(v2)) if (k !== 'version') assert.deepEqual(s[k], v, `field "${k}" changed`);
+  assert.equal(s.version, 3);
+  assert.equal(s.dhikr.round.free, 7);
+  assert.equal(s.dhikr.targets.free, 99);
+  assert.equal(mem.get('prayer-app-v1.backup-v2'), raw);
+});
+
+test('dhikr data survives reloads once on v3', () => {
+  mem.set('prayer-app-v1', JSON.stringify(V1_SAVE));
+  store.load();
+  store.update((s) => {
+    s.dhikr.active = 'islam.subhanallah';
+    s.dhikr.round['islam.subhanallah'] = 12;
+    s.dhikr.log['2026-10-07'] = { 'islam.subhanallah': 45 };
+    s.dhikr.custom.push({ id: 'x1', text: 'Ya Rahman', target: 100 });
+  });
+  const s = store.load();
+  assert.equal(s.dhikr.active, 'islam.subhanallah');
+  assert.equal(s.dhikr.round['islam.subhanallah'], 12);
+  assert.deepEqual(s.dhikr.log['2026-10-07'], { 'islam.subhanallah': 45 });
+  assert.equal(s.dhikr.custom[0].text, 'Ya Rahman');
+  assert.equal(s.dhikr.totals.free, 66);
 });

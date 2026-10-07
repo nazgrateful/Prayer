@@ -1,14 +1,26 @@
-# Built-in adhan recordings (optional)
+# Built-in adhan recordings (muezzin menu)
 
-Put recordings here so that everyone using your copy of the app has an adhan without needing to choose a file:
+Recordings listed in `catalog.json` appear in **Settings → Adhan → Muezzin**. Users can preview each one, pick one, and keep a copy for offline use. To add a recording, put the audio file in this folder and add an entry to the list:
 
-- `adhan.mp3` is used for Dhuhr / Jumuʿah, ʿAsr, Maghrib, and ʿIshaʾ.
-- `adhan-fajr.mp3` is used for Fajr (the version with "aṣ-ṣalātu khayrun min an-nawm"). This file is optional; without it, Fajr uses `adhan.mp3`.
+```json
+{
+  "voices": [
+    {
+      "id": "makkah-1",
+      "name": "Muezzin's name",
+      "origin": "Masjid al-Ḥarām, Makkah",
+      "file": "makkah-1.mp3",
+      "fajrFile": "makkah-1-fajr.mp3",
+      "credit": "Recorded by …",
+      "license": "CC BY-SA 4.0"
+    }
+  ]
+}
+```
 
-Use only recordings you have the right to share, such as public-domain or Creative Commons recordings on [Wikimedia Commons](https://commons.wikimedia.org/w/index.php?search=adhan+audio), or your own mosque's recording with permission. Credit the muezzin and the license below.
+- `id`, `name` and `file` are required. `fajrFile` is optional: it's the Fajr version with "aṣ-ṣalātu khayrun min an-nawm", and without it Fajr uses `file`.
+- The first entry is the default for users who haven't chosen a muezzin.
+- Users can always choose **My own recording** and pick an audio file from their phone instead.
+- An older setup is also still supported: plain `adhan.mp3` / `adhan-fajr.mp3` files here, used when the catalog is empty.
 
-A recording a user chooses in **Settings → Adhan** always takes priority over these files.
-
-## Credits
-
-_(add the source and license of any recording you place here)_
+**Only add recordings you have the right to share**, such as public-domain or Creative Commons recordings (for example, from [Wikimedia Commons](https://commons.wikimedia.org/w/index.php?search=adhan+audio)) or recordings a mosque has given permission for. Fill in `credit` and `license` so they appear in the app.

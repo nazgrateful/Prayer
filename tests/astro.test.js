@@ -41,8 +41,20 @@ test('Makkah Umm al-Qura times', () => {
   });
   near(find(items, 'islam.fajr').time, tz, '05:08', 3, 'fajr');
   near(find(items, 'islam.asr').time, tz, '15:52', 3, 'asr');
-  // Isha is exactly 90 minutes after Maghrib with this method
-  assert.equal(find(items, 'islam.isha').time - find(items, 'islam.maghrib').time, 90 * 60000);
+  // 20 March 2024 was in Ramadan: Umm al-Qura puts Isha 120 minutes after Maghrib
+  assert.equal(find(items, 'islam.isha').time - find(items, 'islam.maghrib').time, 120 * 60000);
+  // ...and 90 minutes the rest of the year
+  const later = daySchedule({ date: { year: 2024, month: 6, day: 1, weekday: 6 }, location: { lat: 21.4225, lng: 39.8262, timeZone: tz }, traditions: ['islam'], settings: { islam: { method: 'Makkah' } } }).items;
+  assert.equal(find(later, 'islam.isha').time - find(later, 'islam.maghrib').time, 90 * 60000);
+});
+
+test('qibla bearing and distance', async () => {
+  const { qiblaBearing, qiblaDistance, compassPoint } = await import('../js/qibla.js');
+  assert.ok(Math.abs(qiblaBearing(51.5074, -0.1278) - 119.0) < 0.5, 'London ≈ 119°');
+  assert.ok(Math.abs(qiblaBearing(40.7128, -74.006) - 58.5) < 0.5, 'New York ≈ 58.5°');
+  assert.ok(Math.abs(qiblaBearing(-6.2088, 106.8456) - 295.2) < 0.5, 'Jakarta ≈ 295°');
+  assert.ok(Math.abs(qiblaDistance(51.5074, -0.1278) - 4790) < 30, 'London ≈ 4,790 km');
+  assert.equal(compassPoint(119), 'ESE');
 });
 
 test('Hanafi Asr is later than standard Asr', () => {

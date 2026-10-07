@@ -1,11 +1,12 @@
 // Service worker: offline cache + notification click handling.
-const CACHE = 'prayer-v2';
+const CACHE = 'prayer-v4';
 const ASSETS = [
   './',
   './index.html',
   './manifest.webmanifest',
   './css/styles.css',
   './icons/icon.svg',
+  './audio/catalog.json',
   './js/adhan.js',
   './js/app.js',
   './js/astro.js',
@@ -15,10 +16,12 @@ const ASSETS = [
   './js/location.js',
   './js/media.js',
   './js/notify.js',
+  './js/qibla.js',
   './js/store.js',
   './js/traditions.js',
   './js/tz.js',
   './js/views/checklist.js',
+  './js/views/dhikr.js',
   './js/views/reflect.js',
   './js/views/settings.js',
   './js/views/timer.js',

@@ -135,6 +135,7 @@ textarea { resize: vertical; margin-top: 8px; }
   cursor: pointer; font-size: 0.88rem; white-space: nowrap;
 }
 .chips.left .chip { white-space: normal; text-align: left; }
+.chips.scroll-x .chip { white-space: nowrap; flex: none; }
 .chip.on { background: var(--primary); color: var(--primary-text); border-color: transparent; }
 
 .segmented { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--surface-2); padding: 4px; border-radius: 12px; margin-top: 12px; }
@@ -256,6 +257,39 @@ details summary { cursor: pointer; }
   opacity: 0; pointer-events: none; transition: 0.25s; z-index: 20; white-space: pre-line;
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+.dhikr-phrase { margin: 10px 0 2px; }
+.dhikr-text { font-size: 1.7rem; line-height: 1.5; font-family: 'Amiri', 'Noto Naskh Arabic', 'Noto Serif', Georgia, serif; }
+.dhikr-translit { font-weight: 600; margin-top: 2px; }
+.dhikr-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 6px 0 4px; }
+.dhikr-stats div { background: var(--surface-2); border-radius: 12px; padding: 8px 4px; display: flex; flex-direction: column; }
+.dhikr-stats strong { font-size: 1.2rem; font-variant-numeric: tabular-nums; }
+.dhikr-stats span { font-size: 0.75rem; color: var(--muted); }
+#dhikr label.btn select { width: auto !important; min-height: 0; padding: 2px 6px; border: 0; background: none; font-weight: 600; }
+#dhikr .switch { text-align: left; }
+#dhikr h4, #dhikr .simple-list { text-align: left; }
+.small-hist { height: 48px; }
+
+.qibla { display: flex; align-items: center; gap: 16px; }
+.qibla-dial { width: 112px; flex: none; }
+.qibla-dial svg { width: 100%; display: block; }
+.dial-ring { fill: var(--surface-2); stroke: var(--line); stroke-width: 1.5; }
+.qibla.aligned .dial-ring { stroke: var(--accent); stroke-width: 3; }
+.dial-rose, .dial-needle { transform-origin: 50px 50px; transition: transform 0.2s ease-out; }
+.dial-rose text { font-size: 9px; font-weight: 700; fill: var(--muted); }
+.dial-needle line { stroke: var(--accent); stroke-width: 3; stroke-linecap: round; }
+.dial-needle .kaaba { font-size: 11px; }
+.dial-hub { fill: var(--accent); }
+.qibla-info { flex: 1; min-width: 0; }
+.qibla-deg { font-size: 1.6rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.qibla-deg small { font-size: 0.9rem; color: var(--muted); font-weight: 600; }
+.qibla-info .btn { margin-top: 8px; min-height: 38px; padding: 6px 12px; }
+
+.voice { display: flex; align-items: center; gap: 10px; padding: 10px; border: 1px solid var(--line); border-radius: 12px; margin: 6px 0; cursor: pointer; }
+.voice.on, .voice:has(input:checked) { border-color: #2f9e6e; background: color-mix(in srgb, #2f9e6e 10%, transparent); }
+.voice input { accent-color: #2f9e6e; width: 18px; height: 18px; flex: none; }
+.voice-text { flex: 1; min-width: 0; }
+.own-recordings[hidden] { display: none; }
 
 .adhan-bar {
   position: fixed; left: 12px; right: 12px; bottom: calc(80px + env(safe-area-inset-bottom)); z-index: 15;

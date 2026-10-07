@@ -245,3 +245,67 @@ export const DEFAULT_CHECKLISTS = {
     monthly: ['Volunteer or donate', 'Review goals and values', 'Read something that nourishes your spirit'],
   },
 };
+
+// Phrases of remembrance (dhikr, japa, prayer-rope prayers…) with the usual
+// number of repetitions. Targets are editable in the app.
+export const DHIKR = {
+  islam: [
+    { id: 'subhanallah', text: 'سُبْحَانَ ٱللَّٰهِ', translit: 'Subḥān Allāh', meaning: 'Glory be to God', target: 33 },
+    { id: 'alhamdulillah', text: 'ٱلْحَمْدُ لِلَّٰهِ', translit: 'Al-ḥamdu lillāh', meaning: 'All praise is due to God', target: 33 },
+    { id: 'allahuakbar', text: 'ٱللَّٰهُ أَكْبَرُ', translit: 'Allāhu akbar', meaning: 'God is the Greatest', target: 34 },
+    { id: 'tahlil', text: 'لَا إِلَٰهَ إِلَّا ٱللَّٰهُ', translit: 'Lā ilāha illa-llāh', meaning: 'There is no god but God', target: 100 },
+    { id: 'astaghfirullah', text: 'أَسْتَغْفِرُ ٱللَّٰهَ', translit: 'Astaghfiru-llāh', meaning: 'I seek God’s forgiveness', target: 100 },
+    { id: 'salawat', text: 'ٱللَّٰهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ', translit: 'Allāhumma ṣalli ʿalā Muḥammad', meaning: 'O God, send blessings upon Muhammad', target: 100 },
+    { id: 'hawqala', text: 'لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِٱللَّٰهِ', translit: 'Lā ḥawla wa lā quwwata illā billāh', meaning: 'There is no power nor strength except through God', target: 100 },
+  ],
+  christianity: [
+    { id: 'jesusprayer', text: 'Lord Jesus Christ, Son of God, have mercy on me, a sinner.', meaning: 'The Jesus Prayer — one knot of the prayer rope', target: 100 },
+    { id: 'hailmary', text: 'Hail Mary, full of grace, the Lord is with thee…', meaning: 'Rosary — one decade', target: 10 },
+    { id: 'ourfather', text: 'Our Father, who art in heaven, hallowed be thy name…', meaning: 'The Lord’s Prayer — once per decade', target: 5 },
+    { id: 'glorybe', text: 'Glory be to the Father, and to the Son, and to the Holy Spirit…', meaning: 'Doxology — closes each decade', target: 5 },
+    { id: 'kyrie', text: 'Kyrie eleison', translit: 'Kyrie eleison', meaning: 'Lord, have mercy', target: 40 },
+  ],
+  judaism: [
+    { id: 'berachot', text: 'בָּרוּךְ אַתָּה יְהוָה', translit: 'Baruch Atah Adonai…', meaning: 'A blessing — the custom of one hundred blessings a day', target: 100 },
+    { id: 'tehillim', text: 'תְּהִלִּים', translit: 'Tehillim', meaning: 'Chapters of Psalms recited', target: 150 },
+  ],
+  hinduism: [
+    { id: 'om', text: 'ॐ', translit: 'Oṃ', meaning: 'The primordial sound', target: 108 },
+    { id: 'gayatri', text: 'ॐ भूर्भुवः स्वः', translit: 'Oṃ Bhūr Bhuvaḥ Svaḥ… (Gāyatrī Mantra)', meaning: 'Meditation on the divine light', target: 108 },
+    { id: 'shivaya', text: 'ॐ नमः शिवाय', translit: 'Oṃ Namaḥ Śivāya', meaning: 'I bow to Śiva', target: 108 },
+    { id: 'harekrishna', text: 'हरे कृष्ण हरे कृष्ण कृष्ण कृष्ण हरे हरे । हरे राम हरे राम राम राम हरे हरे', translit: 'Hare Kṛṣṇa Hare Kṛṣṇa, Kṛṣṇa Kṛṣṇa Hare Hare / Hare Rāma Hare Rāma, Rāma Rāma Hare Hare', meaning: 'Mahā-mantra — one round of the mala', target: 108 },
+    { id: 'ram', text: 'श्री राम जय राम जय जय राम', translit: 'Śrī Rām Jay Rām Jay Jay Rām', meaning: 'Victory to Lord Rāma', target: 108 },
+  ],
+  sikhism: [
+    { id: 'waheguru', text: 'ਵਾਹਿਗੁਰੂ', translit: 'Vāhigurū', meaning: 'Wondrous Enlightener — Naam simran', target: 108 },
+    { id: 'satnam', text: 'ਸਤਿਨਾਮੁ ਵਾਹਿਗੁਰੂ', translit: 'Satnām Vāhigurū', meaning: 'True is the Name, Wondrous Enlightener', target: 108 },
+    { id: 'moolmantar', text: 'ੴ ਸਤਿ ਨਾਮੁ ਕਰਤਾ ਪੁਰਖੁ…', translit: 'Ik Oaṅkār Sat(i) Nām(u) Kartā Purakh(u)… (Mool Mantar)', meaning: 'One Creator; Truth is the Name…', target: 108 },
+  ],
+  buddhism: [
+    { id: 'ommani', text: 'ༀ་མ་ཎི་པ་དྨེ་ཧཱུྃ', translit: 'Oṃ Maṇi Padme Hūṃ', meaning: 'Mantra of compassion (Avalokiteśvara)', target: 108 },
+    { id: 'amituofo', text: '南無阿彌陀佛', translit: 'Namo Amituofo', meaning: 'Homage to Amitābha Buddha', target: 108 },
+    { id: 'daimoku', text: '南無妙法蓮華經', translit: 'Nam-myōhō-renge-kyō', meaning: 'Devotion to the Lotus Sūtra', target: 108 },
+    { id: 'buddho', text: 'Buddho', translit: 'Bud-dho', meaning: 'Meditation word — “awake” — on the in- and out-breath', target: 108 },
+    { id: 'refuge', text: 'Buddhaṃ saraṇaṃ gacchāmi', translit: 'Buddhaṃ saraṇaṃ gacchāmi', meaning: 'I go to the Buddha for refuge', target: 3 },
+  ],
+  bahai: [
+    { id: 'abha', text: 'الله أبهى', translit: 'Alláh-u-Abhá', meaning: 'God is Most Glorious', target: 95 },
+    { id: 'remover', text: 'Is there any Remover of difficulties save God? Say: Praised be God! He is God! All are His servants, and all abide by His bidding!', meaning: 'The Báb — prayer for removing difficulties', target: 19 },
+  ],
+  zoroastrianism: [
+    { id: 'yatha', text: 'Yathā Ahū Vairyō…', translit: 'Yathā Ahū Vairyō', meaning: 'The Ahunavar prayer', target: 21 },
+    { id: 'ashem', text: 'Ashem Vohū…', translit: 'Ashem Vohū', meaning: 'Righteousness is the best good', target: 12 },
+  ],
+  spiritual: [
+    { id: 'thanks', text: 'Thank you', meaning: 'Gratitude practice', target: 100 },
+    { id: 'breath', text: 'Breathing in, I calm my body. Breathing out, I smile.', meaning: 'Mindful breaths', target: 21 },
+    { id: 'metta', text: 'May all beings be well.', meaning: 'Loving-kindness', target: 108 },
+  ],
+};
+
+/** Phrases for the selected traditions, each tagged with its tradition and a global key. */
+export function dhikrFor(traditions) {
+  const out = [];
+  for (const t of traditions) for (const d of DHIKR[t] || []) out.push({ ...d, tradition: t, key: `${t}.${d.id}` });
+  return out;
+}

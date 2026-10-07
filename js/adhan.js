@@ -3,10 +3,10 @@
 // Modes: 'full' plays the whole recording, 'short' plays the opening
 // (the first takbīr) and fades out, 'silent' plays nothing.
 //
-// Audio source, in order of preference:
-//   1. a recording the user chose on their device (stored in IndexedDB)
-//   2. a recording shipped with the app at audio/adhan.mp3 (audio/adhan-fajr.mp3 for Fajr)
-// Fajr falls back to the regular adhan when no Fajr-specific recording exists.
+// Audio source: the muezzin the user picked — one of the built-in recordings
+// listed in audio/catalog.json, or their own file (stored in IndexedDB).
+// Without a choice: own file → first built-in voice → audio/adhan.mp3.
+// Fajr uses a Fajr-specific recording when one exists, else the regular one.
 
 import { getFile } from './media.js';
 
@@ -49,26 +49,78 @@ async function bundled(path) {
   return bundledCache.get(path);
 }
 
-/** Where the audio for 'regular' or 'fajr' would come from: { url, label, revoke } or null. */
-export async function resolveSource(kind) {
-  const chain = kind === 'fajr' ? ['fajr', 'regular'] : ['regular'];
-  for (const k of chain) {
+// ---------------------------------------------------------------------------
+// Built-in muezzin menu: audio/catalog.json lists recordings shipped with the app.
+//   { "voices": [ { "id", "name", "origin", "file", "fajrFile"?, "credit", "license" } ] }
+
+let catalogPromise = null;
+export function loadCatalog() {
+  if (!catalogPromise) {
+    catalogPromise = fetch('audio/catalog.json', { cache: 'no-cache' })
+      .then((r) => (r.ok ? r.json() : { voices: [] }))
+      .then((j) => (Array.isArray(j.voices) ? j.voices.filter((v) => v && v.id && v.name && v.file) : []))
+      .catch(() => []);
+  }
+  return catalogPromise;
+}
+
+async function fromCustom(kind) {
+  for (const k of kind === 'fajr' ? ['fajr', 'regular'] : ['regular']) {
     const file = await getFile(MEDIA_KEYS[k]);
-    if (file?.blob) return { url: URL.createObjectURL(file.blob), label: file.name, revoke: true, custom: true, kind: k };
-    if (await bundled(BUNDLED[k])) return { url: BUNDLED[k], label: 'Built-in recording', revoke: false, custom: false, kind: k };
+    if (file?.blob) return { blob: file.blob, label: file.name, custom: true, kind: k, voice: 'custom' };
   }
   return null;
 }
 
-/** Same lookup as resolveSource, without creating object URLs (for display). */
-export async function describeSource(kind) {
-  const chain = kind === 'fajr' ? ['fajr', 'regular'] : ['regular'];
-  for (const k of chain) {
-    const file = await getFile(MEDIA_KEYS[k]);
-    if (file?.blob) return { label: file.name, custom: true, kind: k };
-    if (await bundled(BUNDLED[k])) return { label: 'Built-in recording', custom: false, kind: k };
+async function fromVoice(v, kind) {
+  const useFajr = kind === 'fajr' && v.fajrFile;
+  const url = `audio/${useFajr ? v.fajrFile : v.file}`;
+  return (await bundled(url)) ? { url, label: v.name, custom: false, kind: useFajr ? 'fajr' : 'regular', voice: v.id } : null;
+}
+
+async function fromLegacy(kind) {
+  for (const k of kind === 'fajr' ? ['fajr', 'regular'] : ['regular']) {
+    if (await bundled(BUNDLED[k])) return { url: BUNDLED[k], label: 'Built-in recording', custom: false, kind: k, voice: null };
   }
   return null;
+}
+
+/**
+ * Find the recording for 'regular' or 'fajr'.
+ * voice: 'custom' (the user's own file), a catalog id, or null for automatic
+ * (own file → first built-in voice → audio/adhan.mp3).
+ */
+async function locate(kind, voice) {
+  const voices = await loadCatalog();
+  if (voice === 'custom') {
+    const own = await fromCustom(kind);
+    if (own) return own;
+  } else if (voice) {
+    const v = voices.find((x) => x.id === voice);
+    const r = v && (await fromVoice(v, kind));
+    if (r) return r;
+  }
+  return (await fromCustom(kind)) || (voices[0] && (await fromVoice(voices[0], kind))) || fromLegacy(kind);
+}
+
+/** Playable source: { url, label, revoke, custom, kind, voice } or null. */
+export async function resolveSource(kind, voice = null) {
+  const r = await locate(kind, voice);
+  if (!r) return null;
+  if (r.blob) return { ...r, url: URL.createObjectURL(r.blob), blob: undefined, revoke: true };
+  return { ...r, revoke: false };
+}
+
+/** Same lookup as resolveSource, without creating object URLs (for display). */
+export async function describeSource(kind, voice = null) {
+  const r = await locate(kind, voice);
+  return r && { label: r.label, custom: r.custom, kind: r.kind, voice: r.voice };
+}
+
+/** Download a built-in recording once so it also plays offline (stored by the service worker). */
+export function warm(voice) {
+  const urls = [voice.file, voice.fajrFile].filter(Boolean).map((f) => `audio/${f}`);
+  return Promise.all(urls.map((u) => fetch(u).then((r) => r.ok && r.arrayBuffer()).catch(() => null)));
 }
 
 let current = null;
@@ -88,9 +140,9 @@ export function nowPlaying() {
  * Play the adhan for `prayerId`.
  * Resolves to { status: 'playing' | 'silent' | 'nosource' | 'blocked' }.
  */
-export async function play(prayerId, { mode = 'full', shortSeconds = 20, volume = 0.9, title } = {}) {
+export async function play(prayerId, { mode = 'full', shortSeconds = 20, volume = 0.9, title, voice = null } = {}) {
   if (mode === 'silent') return { status: 'silent' };
-  const src = await resolveSource(prayerId === 'fajr' ? 'fajr' : 'regular');
+  const src = await resolveSource(prayerId === 'fajr' ? 'fajr' : 'regular', voice);
   if (!src) return { status: 'nosource' };
   stop();
   const audio = new Audio(src.url);
