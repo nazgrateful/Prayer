@@ -1,11 +1,15 @@
 // Service worker: offline cache + notification click handling.
-const CACHE = 'prayer-v4';
+const CACHE = 'prayer-v5';
 const ASSETS = [
   './',
   './index.html',
   './manifest.webmanifest',
   './css/styles.css',
   './icons/icon.svg',
+  './icons/app-icon.svg',
+  './icons/app-icon-180.png',
+  './icons/app-icon-192.png',
+  './icons/app-icon-512.png',
   './audio/catalog.json',
   './js/adhan.js',
   './js/app.js',

@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Home-screen icon: rising sun with praying hands drawn as light (no skin tone). -->
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2b3a67"/>
+      <stop offset="1" stop-color="#c8875b"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#fff3cf"/>
+      <stop offset="0.6" stop-color="#ffd98a" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#ffd98a" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="light" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fffaf0"/>
+      <stop offset="1" stop-color="#ffe2a0"/>
+    </linearGradient>
+    <g id="hand">
+      <path d="M256 128 C270 130 283 150 289 178 L308 282 C312 304 327 318 342 334 C358 351 363 377 355 401 L345 440 L256 440 Z"
+            fill="url(#light)" stroke="#2b3a67" stroke-width="10" stroke-linejoin="round"/>
+      <path d="M266 294 C279 311 293 326 304 348" fill="none" stroke="#2b3a67" stroke-width="8" stroke-linecap="round" opacity=".5"/>
+    </g>
+  </defs>
+  <rect width="512" height="512" fill="url(#sky)"/>
+  <circle cx="256" cy="262" r="220" fill="url(#halo)"/>
+  <g stroke="#ffd98a" stroke-width="16" stroke-linecap="round">
+    <line x1="256" y1="70" x2="256" y2="40"/>
+    <line x1="128" y1="122" x2="104" y2="98"/>
+    <line x1="384" y1="122" x2="408" y2="98"/>
+    <line x1="72" y1="250" x2="40" y2="250"/>
+    <line x1="440" y1="250" x2="472" y2="250"/>
+  </g>
+  <path d="M0 418 H512 V512 H0 Z" fill="#1d2440" opacity=".92"/>
+  <use href="#hand"/>
+  <use href="#hand" transform="translate(512 0) scale(-1 1)"/>
+  <line x1="256" y1="140" x2="256" y2="434" stroke="#2b3a67" stroke-width="7" stroke-linecap="round"/>
+</svg>
