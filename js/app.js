@@ -213,6 +213,7 @@ function onboarding() {
             checklistView.seedChecklists(s);
             s.onboarded = true;
           });
+          store.protect();
           settingsView.applyLocation(loc);
           dlg.close();
           nav('today');
@@ -282,3 +283,4 @@ nav(location.hash.slice(1) || 'today');
 buildQueue();
 pruneFired();
 if (!store.get().onboarded || !store.get().location) onboarding();
+else store.protect();

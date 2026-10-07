@@ -143,4 +143,16 @@ export function reset() {
   save();
 }
 
+/**
+ * Ask the browser to keep this app's data permanently, so it isn't cleared
+ * when the device runs low on space. Silent in most browsers.
+ */
+export async function protect() {
+  try {
+    if (navigator.storage?.persist && !(await navigator.storage.persisted())) await navigator.storage.persist();
+  } catch {
+    /* not supported — data is still saved normally */
+  }
+}
+
 export const uid = () => Math.random().toString(36).slice(2, 10);
