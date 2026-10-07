@@ -217,7 +217,7 @@ async function refreshAdhanSources(root) {
         row(
           v.id,
           v.name,
-          [esc(v.origin || ''), v.fajrFile ? 'includes Fajr adhan' : '', v.credit ? `© ${esc(v.credit)}${v.license ? ` · ${esc(v.license)}` : ''}` : ''].filter(Boolean).join(' · '),
+          [esc(v.origin || ''), v.fajrFile ? 'includes Fajr adhan' : '', v.credit ? `Source: ${esc(v.credit)}${v.license ? ` · ${esc(v.license)}` : ''}` : ''].filter(Boolean).join(' · '),
           `<button type="button" class="icon-btn" data-voice-preview="${esc(v.id)}" aria-label="Preview ${esc(v.name)}">▶</button>`,
         ),
       )

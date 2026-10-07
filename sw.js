@@ -1,12 +1,11 @@
 // Service worker: offline cache + notification click handling.
-const CACHE = 'prayer-v5';
+const CACHE = 'prayer-v6';
 const ASSETS = [
   './',
   './index.html',
   './manifest.webmanifest',
   './css/styles.css',
   './icons/icon.svg',
-  './icons/app-icon.svg',
   './icons/app-icon-180.png',
   './icons/app-icon-192.png',
   './icons/app-icon-512.png',
@@ -33,7 +32,7 @@ const ASSETS = [
 ];
 
 // Optional adhan recordings — cached for offline use when present.
-const OPTIONAL = ['./audio/adhan.mp3', './audio/adhan-fajr.mp3'];
+const OPTIONAL = ['./audio/adhan.mp3', './audio/adhan-fajr.mp3', './audio/adhan-makkah.mp3', './audio/adhan-madinah.mp3'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(

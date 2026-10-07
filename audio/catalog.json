@@ -1,3 +1,18 @@
 {
-  "voices": []
+  "voices": [
+    {
+      "id": "makkah",
+      "name": "Adhan — Makkah",
+      "origin": "3 min 21 s",
+      "file": "adhan-makkah.mp3",
+      "credit": "PrayTimes.org"
+    },
+    {
+      "id": "madinah",
+      "name": "Adhan — Madinah",
+      "origin": "1 min 36 s",
+      "file": "adhan-madinah.mp3",
+      "credit": "PrayTimes.org"
+    }
+  ]
 }
