@@ -1,6 +1,8 @@
 import * as store from './store.js';
 import * as notify from './notify.js';
 import * as adhan from './adhan.js';
+import * as backup from './backup.js';
+import { APP_VERSION, compareVersions, notesSince } from './version.js';
 import { $, $$, tz, today, scheduleFor, quoteOfDay, intentionSuggestion, toast, tradition } from './core.js';
 import { addDays, dateKey, zonedTimeToDate } from './tz.js';
 import * as todayView from './views/today.js';
@@ -179,6 +181,51 @@ $('#adhan-close').addEventListener('click', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Updates: "new version ready" bar and a one-time "what's new" message
+
+$('#update-now').addEventListener('click', () => {
+  adhan.stop();
+  location.reload();
+});
+$('#update-later').addEventListener('click', () => ($('#update-bar').hidden = true));
+
+function markVersionSeen() {
+  store.update((s) => (s.seenVersion = APP_VERSION));
+}
+
+function whatsNew() {
+  const s = store.get();
+  const dlg = $('#whats-new');
+  const releases = notesSince(s.seenVersion);
+  const stale = !s.lastBackup || Date.now() - new Date(s.lastBackup) > 30 * 86400000;
+  $('#whats-new-body').innerHTML = `
+    <h2>Prayer was updated ✨</h2>
+    <p class="muted small">Version ${APP_VERSION}</p>
+    <p class="kept">✓ All your settings, prayer history, checklists and counters are still here.</p>
+    ${releases.length ? `<h4>What’s new</h4><ul class="tips">${releases.flatMap((r) => r.notes).map((n) => `<li>${n}</li>`).join('')}</ul>` : ''}
+    <h4>How to keep your data safe</h4>
+    ${backup.keepDataTips()}
+    ${stale ? `<p class="backup-status warn">${s.lastBackup ? 'Your last backup is more than a month old.' : 'You haven’t saved a backup yet.'}</p>` : ''}
+    <div class="hero-actions">
+      <button class="btn ${stale ? '' : 'primary'}" id="wn-done">Done</button>
+      <button class="btn ${stale ? 'primary' : ''}" id="wn-backup">💾 Save a backup</button>
+    </div>`;
+  $('#wn-done', dlg).onclick = () => {
+    markVersionSeen();
+    dlg.close();
+  };
+  $('#wn-backup', dlg).onclick = () => {
+    markVersionSeen();
+    dlg.close();
+    settingsView.focusSection('data');
+    nav('settings');
+    setTimeout(() => $('[data-sec="data"]')?.scrollIntoView({ block: 'start', behavior: 'smooth' }), 50);
+  };
+  dlg.addEventListener('cancel', markVersionSeen, { once: true });
+  dlg.showModal();
+}
+
+// ---------------------------------------------------------------------------
 // Onboarding
 
 function onboarding() {
@@ -212,7 +259,9 @@ function onboarding() {
             s.traditions = draft.traditions;
             checklistView.seedChecklists(s);
             s.onboarded = true;
+            s.seenVersion = APP_VERSION; // new users don't need a "what's new"
           });
+          store.protect();
           settingsView.applyLocation(loc);
           dlg.close();
           nav('today');
@@ -266,14 +315,15 @@ document.addEventListener('visibilitychange', () => {
 });
 
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-  // When an updated version of the app takes over, reload once so the new
-  // code runs. Settings and history live in localStorage and are unaffected.
+  // When an updated version has been downloaded, tell the person and let
+  // them restart into it. Settings and history live on the device and are
+  // unaffected; the update also applies by itself the next time the app opens.
   const hadController = !!navigator.serviceWorker.controller;
   let reloaded = false;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (!hadController || reloaded || adhan.nowPlaying()) return;
+    if (!hadController || reloaded) return;
     reloaded = true;
-    location.reload();
+    $('#update-bar').hidden = false; // let the person restart when it suits them
   });
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
@@ -282,3 +332,7 @@ nav(location.hash.slice(1) || 'today');
 buildQueue();
 pruneFired();
 if (!store.get().onboarded || !store.get().location) onboarding();
+else {
+  store.protect();
+  if (compareVersions(APP_VERSION, store.get().seenVersion || '1.0.0') > 0) whatsNew();
+}

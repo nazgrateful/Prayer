@@ -24,7 +24,7 @@ A **free, private, installable web app** for daily prayer in any tradition. It h
 | 🕋 **Qibla** | The direction and distance to the Kaʿbah from your location, with a live compass on phones. |
 | 📿 **Remembrance counter** | Phrases for each tradition: tasbīḥ (Subḥān Allāh 33 · Al-ḥamdu lillāh 33 · Allāhu akbar 34…), the Jesus Prayer and rosary, the hundred daily blessings and Psalms, Gāyatrī and Hare Kṛṣṇa japa (108), Vāhigurū simran, Oṃ Maṇi Padme Hūṃ and Namo Amituofo, Alláh-u-Abhá ×95, Yathā Ahū Vairyō, and more. You can add your own phrases. Each phrase has its own target and its own count for the round, the day, and all time, plus a 7-day history. It can also move on to the next phrase automatically when a round ends. |
 | 🗓 **Calendars** | The Hijri date (Umm al-Qura) and Hebrew date are shown when relevant. Shabbat candle lighting and Havdalah, Jumuʿah, Sunday worship, and approximate Uposatha days are shown on the right days. |
-| 💾 **Your data** | Everything stays in the browser (localStorage). You can back up, restore, or reset it. |
+| 💾 **Your data** | Everything stays on the phone. **Save backup** opens the phone's share sheet (Save to Files, iCloud Drive, Google Drive, email…) or downloads the file. **Copy as text** works anywhere. Restoring works from a file or pasted text, asks for confirmation first, and can be undone. Backups include the user's own adhan recordings. |
 
 ### Where the prayer times come from
 
@@ -66,6 +66,8 @@ To publish in the Play Store or App Store later, wrap this folder with [Capacito
 
 ## Updates never erase user data
 
+When a new version is published, people see a **"A new version is ready — your data stays on this phone"** bar with an **Update** button. Otherwise the update applies by itself the next time they open the app. After updating, they see a one-time **"Prayer was updated"** message. It confirms their data was kept, lists what's new, explains how to keep their data safe, and offers **Save a backup**. To publish an update with notes, bump `APP_VERSION` in `js/version.js` (and `package.json`) and add an entry to `RELEASES`.
+
 Settings and history are stored under one fixed key on the device. Each saved copy carries a version number. When a new version of the app changes the data's shape, it upgrades the saved data in place by adding fields, never removing them. Before upgrading, it keeps an untouched copy of the old data (`prayer-app-v1.backup-v<n>`). Tests check every upgrade path (`npm test`).
 
 ## Privacy
@@ -87,6 +89,8 @@ js/ics.js          calendar export
 js/adhan.js        adhan playback, muezzin catalog (audio/catalog.json)
 js/media.js        user audio files (IndexedDB)
 js/qibla.js        qibla bearing, distance and live compass
+js/backup.js       backup / restore (share sheet, download, text)
+js/version.js      app version and "what's new" notes
 js/views/*.js      Today, Timer, Checklist, Reflect, Settings screens
 tests/             node:test suite
 ```

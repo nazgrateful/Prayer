@@ -146,3 +146,40 @@ test('dhikr data survives reloads once on v3', () => {
   assert.equal(s.dhikr.custom[0].text, 'Ya Rahman');
   assert.equal(s.dhikr.totals.free, 66);
 });
+
+// Exactly what the version currently live on main saves (data version 3).
+// If a future change breaks loading this, users would lose data — keep this test passing.
+const V3_SAVE = {
+  ...V1_SAVE,
+  version: 3,
+  dhikr: {
+    active: 'islam.subhanallah',
+    autoAdvance: false,
+    targets: { 'islam.allahuakbar': 33 },
+    round: { 'islam.subhanallah': 12, free: 7 },
+    log: { '2026-10-07': { 'islam.subhanallah': 45, 'custom.k9': 3 } },
+    totals: { 'islam.subhanallah': 1045, free: 7, 'custom.k9': 3 },
+    custom: [{ id: 'k9', text: 'Yā Raḥmān', meaning: '', target: 100 }],
+  },
+  adhan: { mode: 'short', shortSeconds: 15, volume: 0.6, perPrayer: { fajr: 'silent', isha: 'full' }, voice: 'custom' },
+};
+
+test('current (v3) data loads exactly as saved, with no conversion and no backup', () => {
+  const raw = JSON.stringify(V3_SAVE);
+  mem.set('prayer-app-v1', raw);
+  const s = store.load();
+  for (const [k, v] of Object.entries(V3_SAVE)) assert.deepEqual(s[k], v, `field "${k}" changed on load`);
+  assert.equal(mem.get('prayer-app-v1'), raw, 'stored data must not be rewritten just by opening the app');
+  assert.equal([...mem.keys()].some((k) => k.includes('backup')), false);
+});
+
+test('data written by a newer version is never thrown away by this one', () => {
+  const future = { ...V3_SAVE, version: 4, someFutureFeature: { a: 1 }, dhikr: { ...V3_SAVE.dhikr, newField: true } };
+  mem.set('prayer-app-v1', JSON.stringify(future));
+  const s = store.load();
+  assert.equal(s.version, 4);
+  assert.deepEqual(s.someFutureFeature, { a: 1 });
+  assert.equal(s.dhikr.newField, true);
+  store.save();
+  assert.deepEqual(JSON.parse(mem.get('prayer-app-v1')).someFutureFeature, { a: 1 });
+});

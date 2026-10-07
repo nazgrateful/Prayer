@@ -9,7 +9,8 @@
   <meta name="theme-color" content="#14161a" media="(prefers-color-scheme: dark)">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="icons/icon.svg">
+  <!-- iPhone/iPad home-screen icon (iOS needs a PNG) -->
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/app-icon-180.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="stylesheet" href="css/styles.css">
@@ -36,6 +37,12 @@
     <button id="adhan-action" class="btn primary">■ Stop</button>
     <button id="adhan-close" class="icon-btn" aria-label="Dismiss">✕</button>
   </div>
+  <div id="update-bar" class="update-bar" role="status" hidden>
+    <span>✨ A new version of Prayer is ready. Your data stays on this phone.</span>
+    <button id="update-now" class="btn primary">Update</button>
+    <button id="update-later" class="icon-btn" aria-label="Later">✕</button>
+  </div>
+  <dialog id="whats-new" class="onboarding"><div id="whats-new-body"></div></dialog>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <noscript><p style="padding:2rem">This app needs JavaScript to calculate prayer times.</p></noscript>
