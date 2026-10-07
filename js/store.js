@@ -1,8 +1,12 @@
 // Tiny persistent store — everything stays on the device (localStorage).
 
+// The storage key never changes, so existing users keep their data across
+// updates. Changes to the data's shape are handled by `migrate()` below.
 const KEY = 'prayer-app-v1';
+export const SCHEMA_VERSION = 2;
 
 export const DEFAULT_STATE = {
+  version: SCHEMA_VERSION,
   onboarded: false,
   location: null, // { lat, lng, elevation, name, timeZone, source }
   traditions: [],
@@ -27,7 +31,26 @@ export const DEFAULT_STATE = {
   timer: { minutes: 10, interval: 0 },
   counter: { count: 0, target: 33 },
   fired: {}, // notification de-duplication
+  adhan: {
+    mode: 'full', // 'full' | 'short' | 'silent' — default for every prayer
+    shortSeconds: 20, // length of the "first part" before fading out
+    volume: 0.9,
+    perPrayer: {}, // { fajr: 'silent' | 'short' | 'full' | 'default' }
+  },
 };
+
+/**
+ * Upgrade data saved by an older version of the app. Only ever adds or
+ * renames fields — it never drops what the user entered.
+ */
+export function migrate(saved) {
+  if (!saved || typeof saved !== 'object') return saved;
+  const out = { ...saved };
+  const from = out.version || 1;
+  // v1 → v2: adhan settings added. Defaults are filled in by merge(); nothing to convert.
+  if (from < 2) out.version = 2;
+  return out;
+}
 
 let state;
 const listeners = new Set();
@@ -43,13 +66,24 @@ function merge(base, saved) {
 }
 
 export function load() {
+  let raw = null;
   let saved = null;
   try {
-    saved = JSON.parse(localStorage.getItem(KEY) || 'null');
+    raw = localStorage.getItem(KEY);
+    saved = JSON.parse(raw || 'null');
   } catch {
     saved = null;
   }
-  state = merge(structuredClone(DEFAULT_STATE), saved);
+  if (saved && typeof saved === 'object' && (saved.version || 1) < SCHEMA_VERSION) {
+    // Keep an untouched copy of the old data before upgrading, just in case.
+    try {
+      localStorage.setItem(`${KEY}.backup-v${saved.version || 1}`, raw);
+    } catch {
+      /* storage full — the upgrade below is non-destructive anyway */
+    }
+  }
+  state = merge(structuredClone(DEFAULT_STATE), migrate(saved));
+  if (saved && saved.version !== state.version) save();
   return state;
 }
 
@@ -83,7 +117,7 @@ export function exportJSON() {
 export function importJSON(text) {
   const data = JSON.parse(text);
   if (typeof data !== 'object' || !data) throw new Error('Invalid backup file');
-  state = merge(structuredClone(DEFAULT_STATE), data);
+  state = merge(structuredClone(DEFAULT_STATE), migrate(data));
   save();
 }
 
