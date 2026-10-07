@@ -6,6 +6,8 @@ A **free, private, installable web app** for daily prayer in any tradition. It h
   <img src="docs/screenshots/today.png" width="220" alt="Today screen">
   <img src="docs/screenshots/today-dark.png" width="220" alt="Today screen, dark mode">
   <img src="docs/screenshots/timer.png" width="220" alt="Prayer timer">
+  <img src="docs/screenshots/qibla.png" width="220" alt="Qibla direction">
+  <img src="docs/screenshots/remembrance.png" width="220" alt="Remembrance counter">
 </p>
 
 ## Features
@@ -15,11 +17,18 @@ A **free, private, installable web app** for daily prayer in any tradition. It h
 | 📍 **Location-aware times** | Uses GPS, a city search, or coordinates you enter. Times are calculated **on the device** from the sun's position, so they change with the seasons and with where you are. The calculation method is picked for your region automatically (for example, ISNA in North America, Umm al-Qura in Saudi Arabia, Ḥanafī ʿAsr in South Asia, and 40-minute candle lighting in Jerusalem). |
 | 🕊 **9 traditions** | Islam, Christianity, Judaism, Hinduism, Sikhism, Buddhism, Baháʼí Faith, Zoroastrianism, and Spiritual / Interfaith. You can combine several (useful for interfaith households) and add your own **custom prayers**, at a fixed time or relative to sunrise, noon, or sunset. |
 | 🔔 **Custom notifications** | Each prayer has its own on/off switch. There's an early reminder (0–60 min before) and an at-time alert, an optional scripture quote and intention in the notification, a daily quote reminder, and a soft bell. **Export to calendar (.ics)** gives you alarms that work even when the app is closed. |
-| ⏱ **Prayer timer** | A countdown with presets, interval bells, and a screen-awake lock. You can start it from any prayer, and each prayer can have its own default length. It also has a counter for tasbīḥ, rosary, mala, or japa (33, 99, 108, …). |
+| ⏱ **Prayer timer** | A countdown with presets, interval bells, and a screen-awake lock. You can start it from any prayer, and each prayer can have its own default length. |
 | ☑ **Checklists** | Daily, weekly, and monthly lists that reset on their own. They start with suggestions for your traditions, and a history chart shows past completion. You can also tick off each prayer on the Today screen. |
 | ✎ **Intentions & scripture** | Suggested intentions for each prayer (or write your own), a quote of the day from your tradition's books (Qurʾān, Bible, Tanakh, Gita, Guru Granth Sahib, Dhammapada, Baháʼí Writings, Avesta…), favourites, and sharing. |
+| 🕌 **Adhan** | For the five Islamic prayers, you can play the full adhan, only the first part (with a fade-out), or nothing. This can be set separately for each prayer, for example silent at Fajr. There's a **muezzin menu** of built-in recordings (see [`audio/README.md`](audio/README.md)), or users can pick their own audio file. A separate Fajr adhan, volume control, previews, and a stop button (also on the lock screen) are included. |
+| 🕋 **Qibla** | The direction and distance to the Kaʿbah from your location, with a live compass on phones. |
+| 📿 **Remembrance counter** | Phrases for each tradition: tasbīḥ (Subḥān Allāh 33 · Al-ḥamdu lillāh 33 · Allāhu akbar 34…), the Jesus Prayer and rosary, the hundred daily blessings and Psalms, Gāyatrī and Hare Kṛṣṇa japa (108), Vāhigurū simran, Oṃ Maṇi Padme Hūṃ and Namo Amituofo, Alláh-u-Abhá ×95, Yathā Ahū Vairyō, and more. You can add your own phrases. Each phrase has its own target and its own count for the round, the day, and all time, plus a 7-day history. It can also move on to the next phrase automatically when a round ends. |
 | 🗓 **Calendars** | The Hijri date (Umm al-Qura) and Hebrew date are shown when relevant. Shabbat candle lighting and Havdalah, Jumuʿah, Sunday worship, and approximate Uposatha days are shown on the right days. |
 | 💾 **Your data** | Everything stays in the browser (localStorage). You can back up, restore, or reset it. |
+
+### Where the prayer times come from
+
+All times are **calculated on your device** from the sun's position at your location. Nothing is downloaded. The math is the same as the open-source [PrayTimes.org](https://praytimes.org/) library, and so are its calculation methods and angles: MWL, ISNA, Egypt, Umm al-Qura (Makkah; ʿIshaʾ is 90 minutes after Maghrib, or 120 minutes in Ramadan), Karachi, Tehran, and Jafari. Gulf, Kuwait, Qatar, Singapore, France, Turkey, and Russia are also included. The method is picked for your region automatically. You can change it in Settings, and you can shift any single time by a few minutes to match your mosque's timetable.
 
 ### Prayer schedules
 
@@ -55,6 +64,10 @@ Web apps can show notifications only while the app is open or was recently in th
 
 To publish in the Play Store or App Store later, wrap this folder with [Capacitor](https://capacitorjs.com/) and use its Local Notifications plugin. The calculation and UI code can be reused unchanged.
 
+## Updates never erase user data
+
+Settings and history are stored under one fixed key on the device. Each saved copy carries a version number. When a new version of the app changes the data's shape, it upgrades the saved data in place by adding fields, never removing them. Before upgrading, it keeps an untouched copy of the old data (`prayer-app-v1.backup-v<n>`). Tests check every upgrade path (`npm test`).
+
 ## Privacy
 
 - Prayer times are calculated on your device. Your coordinates are not sent anywhere for that.
@@ -71,6 +84,9 @@ js/content.js      quotes, intention suggestions, starter checklists
 js/tz.js           time-zone helpers (Intl only)
 js/notify.js       reminder scheduler, notifications, bell sound
 js/ics.js          calendar export
+js/adhan.js        adhan playback, muezzin catalog (audio/catalog.json)
+js/media.js        user audio files (IndexedDB)
+js/qibla.js        qibla bearing, distance and live compass
 js/views/*.js      Today, Timer, Checklist, Reflect, Settings screens
 tests/             node:test suite
 ```

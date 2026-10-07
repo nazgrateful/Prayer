@@ -1,5 +1,6 @@
 import * as store from './store.js';
 import * as notify from './notify.js';
+import * as adhan from './adhan.js';
 import { $, $$, tz, today, scheduleFor, quoteOfDay, intentionSuggestion, toast, tradition } from './core.js';
 import { addDays, dateKey, zonedTimeToDate } from './tz.js';
 import * as todayView from './views/today.js';
@@ -42,10 +43,15 @@ function updateHeader() {
 // ---------------------------------------------------------------------------
 // Notification queue: next ~36 hours of reminders.
 
+function isAdhanPrayer(p) {
+  return p.tradition === 'islam' && adhan.ADHAN_PRAYERS.includes(p.id);
+}
+
 function buildQueue() {
   const s = store.get();
   const n = s.notifications;
-  if (!s.location || !n.enabled) return notify.setQueue([]);
+  const wantsAdhan = s.traditions.includes('islam');
+  if (!s.location || (!n.enabled && !wantsAdhan)) return notify.setQueue([]);
   const events = [];
   const horizon = Date.now() + 36 * 3600000;
   let d = addDays(today(), -1);
@@ -53,7 +59,10 @@ function buildQueue() {
     const dk = dateKey(d);
     for (const p of scheduleFor(d).items) {
       const pref = s.prefs[p.key] || {};
-      if (!p.enabled || p.marker || !p.time || pref.notify === false || p.time.getTime() > horizon) continue;
+      if (!p.enabled || p.marker || !p.time || p.time.getTime() > horizon) continue;
+      const remind = n.enabled && pref.notify !== false;
+      const withAdhan = isAdhanPrayer(p) && adhan.modeFor(s.adhan, p.id) !== 'silent';
+      if (!remind && !withAdhan) continue;
       const t = tradition(p.tradition);
       const intention = s.intentions[dk]?.[p.key];
       const bodyParts = [];
@@ -64,15 +73,28 @@ function buildQueue() {
       }
       const body = bodyParts.join('\n\n') || p.desc || '';
       const before = pref.remind ?? n.remindBefore;
-      if (before > 0) {
-        events.push({ id: `${dk}:${p.key}:pre`, at: new Date(p.time - before * 60000), title: `${t.symbol} ${p.name} in ${before} min`, body, key: p.key });
+      if (remind && before > 0) {
+        events.push({ id: `${dk}:${p.key}:pre`, at: new Date(p.time - before * 60000), title: `${t.symbol} ${p.name} in ${before} min`, body, key: p.key, system: true });
       }
-      if (n.atTime) events.push({ id: `${dk}:${p.key}:at`, at: p.time, title: `${t.symbol} Time for ${p.name}`, body, key: p.key, main: true });
+      const atTime = remind && n.atTime;
+      if (atTime || withAdhan) {
+        events.push({
+          id: `${dk}:${p.key}:at`,
+          at: p.time,
+          title: `${t.symbol} Time for ${p.name}`,
+          body,
+          key: p.key,
+          main: true,
+          system: atTime,
+          adhanFor: isAdhanPrayer(p) ? p.id : null,
+          name: p.name,
+        });
+      }
     }
-    if (n.dailyQuoteTime && /^\d{2}:\d{2}$/.test(n.dailyQuoteTime)) {
+    if (n.enabled && n.dailyQuoteTime && /^\d{2}:\d{2}$/.test(n.dailyQuoteTime)) {
       const [h, m] = n.dailyQuoteTime.split(':').map(Number);
       const q = quoteOfDay(d);
-      if (q) events.push({ id: `${dk}:quote`, at: zonedTimeToDate({ ...d, hour: h, minute: m }, tz()), title: '📖 Today’s reflection', body: `“${q.text}” — ${q.ref}` });
+      if (q) events.push({ id: `${dk}:quote`, at: zonedTimeToDate({ ...d, hour: h, minute: m }, tz()), title: '📖 Today’s reflection', body: `“${q.text}” — ${q.ref}`, system: true });
     }
   }
   notify.setQueue(events);
@@ -91,13 +113,69 @@ notify.init({
     store.get().fired[id] = Date.now();
     store.save();
   },
-  onFire: (e) => {
+  onFire: async (e) => {
     const s = store.get();
-    if (s.notifications.sound) notify.chime(e.main ? 2 : 1);
-    notify.show(e.title, e.body, e.id);
+    let played = false;
+    if (e.adhanFor) {
+      // For the five Islamic prayers the adhan setting decides the sound;
+      // 'silent' means no sound at all.
+      const mode = adhan.modeFor(s.adhan, e.adhanFor);
+      if (mode !== 'silent') {
+        const r = await playAdhan(e.adhanFor, e.name, mode);
+        played = r.status === 'playing';
+        if (!played && s.notifications.sound) notify.chime(2);
+      }
+    } else if (s.notifications.sound) notify.chime(e.main ? 2 : 1);
+    if (e.system) notify.show(e.title, e.body, e.id, { silent: played });
     toast(e.title, 6000);
     if (currentView === 'today') rerender();
   },
+});
+
+// ---------------------------------------------------------------------------
+// Adhan playback bar (stop button, or tap-to-play when autoplay is blocked)
+
+let pendingAdhan = null;
+
+async function playAdhan(prayerId, name, mode) {
+  const s = store.get();
+  const r = await adhan.play(prayerId, { mode, shortSeconds: s.adhan.shortSeconds, volume: s.adhan.volume, voice: s.adhan.voice, title: `Adhan · ${name}` });
+  if (r.status === 'blocked') {
+    pendingAdhan = { prayerId, name, mode };
+    showAdhanBar(`Adhan for ${name}`, '▶ Play');
+  } else if (r.status === 'nosource') {
+    toast('No adhan recording yet — add one in Settings › Notifications', 6000);
+  }
+  return r;
+}
+
+function showAdhanBar(text, action) {
+  const bar = $('#adhan-bar');
+  $('#adhan-text').textContent = text;
+  $('#adhan-action').textContent = action;
+  bar.hidden = false;
+}
+
+adhan.onChange((now) => {
+  if (now) {
+    pendingAdhan = null;
+    showAdhanBar(`🕌 ${now.title}${now.mode === 'short' ? ' (first part)' : ''}`, '■ Stop');
+  } else if (!pendingAdhan) $('#adhan-bar').hidden = true;
+});
+
+$('#adhan-action').addEventListener('click', async () => {
+  if (adhan.nowPlaying()) return adhan.stop();
+  if (pendingAdhan) {
+    const p = pendingAdhan;
+    pendingAdhan = null;
+    $('#adhan-bar').hidden = true;
+    await playAdhan(p.prayerId, p.name, p.mode);
+  }
+});
+$('#adhan-close').addEventListener('click', () => {
+  pendingAdhan = null;
+  adhan.stop();
+  $('#adhan-bar').hidden = true;
 });
 
 // ---------------------------------------------------------------------------
@@ -188,6 +266,15 @@ document.addEventListener('visibilitychange', () => {
 });
 
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  // When an updated version of the app takes over, reload once so the new
+  // code runs. Settings and history live in localStorage and are unaffected.
+  const hadController = !!navigator.serviceWorker.controller;
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadController || reloaded || adhan.nowPlaying()) return;
+    reloaded = true;
+    location.reload();
+  });
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
 

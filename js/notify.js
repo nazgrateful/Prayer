@@ -24,9 +24,10 @@ export async function requestPermission() {
   return Notification.requestPermission();
 }
 
-export async function show(title, body, tag) {
+export async function show(title, body, tag, { silent = false } = {}) {
   if (permission() !== 'granted') return false;
-  const opts = { body, tag, icon: 'icons/icon.svg', badge: 'icons/icon.svg', renotify: true, vibrate: [120, 60, 120] };
+  // `silent` avoids the system sound overlapping an adhan that is already playing.
+  const opts = { body, tag, icon: 'icons/icon.svg', badge: 'icons/icon.svg', renotify: true, silent, ...(silent ? {} : { vibrate: [120, 60, 120] }) };
   try {
     const reg = await navigator.serviceWorker?.getRegistration();
     if (reg) {

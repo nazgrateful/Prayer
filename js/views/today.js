@@ -2,6 +2,9 @@ import * as store from '../store.js';
 import { $, esc, fmt, tradition, scheduleFor, upcoming, current, quoteOfDay, today, dateLine, toast, relative, intentionSuggestion } from '../core.js';
 import { addDays, dateKey, formatDuration } from '../tz.js';
 import { startTimerFor } from './timer.js';
+import { qiblaBearing, qiblaDistance, compassPoint, watchHeading } from '../qibla.js';
+
+let stopCompass = null;
 
 let dayOffset = 0;
 let showHidden = false;
@@ -25,6 +28,7 @@ export function render(root, nav) {
 
   root.innerHTML = `
     ${dayOffset === 0 && next ? heroCard(next, cur) : ''}
+    ${s.traditions.includes('islam') && s.location ? qiblaCard(s.location) : ''}
 
     <section class="card quote-card" style="--accent:${tradition(q?.tradition).color}">
       <div class="card-head">
@@ -93,6 +97,9 @@ export function render(root, nav) {
     } else if (act === 'intent' && item) {
       nav('reflect', { prayerKey: item.key, dateKey: item.dateKey || key });
       return;
+    } else if (act === 'compass') {
+      toggleCompass(root);
+      return;
     } else if (act === 'enable') {
       store.update((st) => {
         st.prefs[pkey] = { ...(st.prefs[pkey] || {}), enabled: true };
@@ -109,7 +116,84 @@ export function render(root, nav) {
     if (ms <= 0) return render(root, nav);
     el.textContent = formatDuration(ms);
   }, 1000);
-  return () => clearInterval(tick);
+  if (stopCompass) paintCompass(root); // keep the live needle after re-renders
+  return () => {
+    clearInterval(tick);
+    stopCompass?.();
+    stopCompass = null;
+  };
+}
+
+let heading = null;
+
+function qiblaCard(loc) {
+  const b = qiblaBearing(loc.lat, loc.lng);
+  const km = qiblaDistance(loc.lat, loc.lng);
+  const dist = km < 1 ? 'You are at the Kaʿbah' : `${Math.round(km).toLocaleString()} km to Makkah`;
+  return `
+  <section class="card qibla" style="--accent:#2f9e6e" data-bearing="${b}">
+    <div class="qibla-dial" aria-hidden="true">
+      <svg viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="46" class="dial-ring"/>
+        <g class="dial-rose">
+          <text x="50" y="13" text-anchor="middle">N</text><text x="89" y="54" text-anchor="middle">E</text>
+          <text x="50" y="95" text-anchor="middle">S</text><text x="11" y="54" text-anchor="middle">W</text>
+        </g>
+        <g class="dial-needle" style="transform: rotate(${b}deg)">
+          <line x1="50" y1="50" x2="50" y2="16"/><text x="50" y="14" text-anchor="middle" class="kaaba">🕋</text>
+        </g>
+        <circle cx="50" cy="50" r="3" class="dial-hub"/>
+      </svg>
+    </div>
+    <div class="qibla-info">
+      <span class="eyebrow">🕋 Qibla</span>
+      <div class="qibla-deg">${b.toFixed(1)}° <small>${compassPoint(b)}</small></div>
+      <div class="muted small">from true north · ${esc(dist)}</div>
+      <div class="muted small" id="qibla-live">${stopCompass ? 'Turn until 🕋 points straight up' : ''}</div>
+      <button class="btn" data-act="compass">${stopCompass ? 'Stop compass' : '🧭 Use compass'}</button>
+    </div>
+  </section>`;
+}
+
+function paintCompass(root) {
+  const card = $('.qibla', root);
+  if (!card) return;
+  const b = +card.dataset.bearing;
+  const rose = $('.dial-rose', card);
+  const needle = $('.dial-needle', card);
+  if (heading == null) return;
+  // Rotate the dial so it matches the real world; the needle then points at the Qibla.
+  rose.style.transform = `rotate(${-heading}deg)`;
+  needle.style.transform = `rotate(${b - heading}deg)`;
+  const off = ((b - heading + 540) % 360) - 180;
+  const live = $('#qibla-live', card);
+  live.textContent = Math.abs(off) <= 5 ? '✓ Facing the Qibla' : `Turn ${off > 0 ? 'right' : 'left'} ${Math.round(Math.abs(off))}°`;
+  card.classList.toggle('aligned', Math.abs(off) <= 5);
+}
+
+async function toggleCompass(root) {
+  if (stopCompass) {
+    stopCompass();
+    stopCompass = null;
+    heading = null;
+    const btn = $('.qibla [data-act=compass]', root);
+    if (btn) btn.textContent = '🧭 Use compass';
+    $('.qibla .dial-rose', root).style.transform = '';
+    $('.qibla .dial-needle', root).style.transform = `rotate(${$('.qibla', root).dataset.bearing}deg)`;
+    $('#qibla-live', root).textContent = '';
+    $('.qibla', root).classList.remove('aligned');
+    return;
+  }
+  try {
+    stopCompass = await watchHeading((h) => {
+      heading = h;
+      paintCompass(root);
+    });
+    $('.qibla [data-act=compass]', root).textContent = 'Stop compass';
+    $('#qibla-live', root).textContent = 'Hold your phone flat… keep it away from metal and magnets';
+  } catch (e) {
+    toast(e.message || 'Compass not available — use the bearing shown');
+  }
 }
 
 function heroCard(next, cur) {

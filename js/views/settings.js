@@ -5,6 +5,8 @@ import { fromGPS, searchCity, manual, reverseName } from '../location.js';
 import { addDays, dateKey } from '../tz.js';
 import { buildICS } from '../ics.js';
 import * as notify from '../notify.js';
+import * as adhan from '../adhan.js';
+import { putFile, deleteFile } from '../media.js';
 import { seedChecklists } from './checklist.js';
 
 let openSection = null;
@@ -133,6 +135,173 @@ function upcomingNotifyEvents(days) {
   return events;
 }
 
+const ADHAN_PRAYER_NAMES = { fajr: 'Fajr', dhuhr: 'Dhuhr / Jumuʿah', asr: 'ʿAsr', maghrib: 'Maghrib', isha: 'ʿIshaʾ' };
+const MAX_AUDIO_MB = 15;
+
+function adhanSection(a) {
+  const opt = (value, label, current) => `<option value="${value}" ${current === value ? 'selected' : ''}>${label}</option>`;
+  return `
+    <p class="muted small">Plays at the start of each of the five daily prayers, even when system notifications are off.</p>
+    <div class="adhan-mode" role="radiogroup" aria-label="Adhan">
+      ${Object.entries(adhan.ADHAN_MODES)
+        .map(([k, label]) => `<label><input type="radio" name="adhan-mode" value="${k}" ${a.mode === k ? 'checked' : ''}>${k === 'full' ? '🔊' : k === 'short' ? '🔉' : '🔇'} ${label}</label>`)
+        .join('')}
+    </div>
+    <div class="adhan-grid">
+      <label class="field">First part length <select data-adhan="shortSeconds">
+        ${[10, 15, 20, 30, 45, 60].map((v) => opt(v, `${v} seconds`, a.shortSeconds)).join('')}
+      </select></label>
+      <label class="field">Volume <input type="range" min="0.1" max="1" step="0.05" data-adhan="volume" value="${a.volume}"></label>
+    </div>
+    <h4>Per prayer</h4>
+    <div class="adhan-grid">
+      ${adhan.ADHAN_PRAYERS.map(
+        (id) => `<label class="field">${ADHAN_PRAYER_NAMES[id]} <select data-adhan-prayer="${id}">
+          ${opt('default', `Default (${adhan.ADHAN_MODES[a.mode].toLowerCase()})`, a.perPrayer[id] || 'default')}
+          ${Object.entries(adhan.ADHAN_MODES).map(([k, label]) => opt(k, label, a.perPrayer[id])).join('')}
+        </select></label>`,
+      ).join('')}
+    </div>
+    <h4>Muezzin</h4>
+    <div class="voice-list" id="voice-list"><p class="muted small">Loading…</p></div>
+    <div class="own-recordings" id="own-recordings">
+      <div class="file-row" data-kind="regular">
+        <div><strong>My adhan file</strong><br><span class="muted small" data-source="regular">Checking…</span></div>
+        <div class="actions">
+          <label class="btn">Choose file<input type="file" accept="audio/*" data-upload="regular" hidden></label>
+          <button class="btn" data-remove="regular" hidden>Remove</button>
+        </div>
+      </div>
+      <div class="file-row" data-kind="fajr">
+        <div><strong>My Fajr adhan</strong> <span class="muted small">(optional — with “aṣ-ṣalātu khayrun min an-nawm”)</span><br><span class="muted small" data-source="fajr">Checking…</span></div>
+        <div class="actions">
+          <label class="btn">Choose file<input type="file" accept="audio/*" data-upload="fajr" hidden></label>
+          <button class="btn" data-remove="fajr" hidden>Remove</button>
+        </div>
+      </div>
+    </div>
+    <div class="hero-actions">
+      <button class="btn" data-preview="full">▶ Full</button>
+      <button class="btn" data-preview="short">▶ First part</button>
+      <button class="btn" data-preview="stop">■ Stop</button>
+    </div>
+    <p class="muted small">Your own file is saved on this device and works offline. Like other notifications, the adhan plays while the app is open or was recently in use; phones may silence web apps that have been closed.</p>`;
+}
+
+async function refreshAdhanSources(root) {
+  const voice = store.get().adhan.voice;
+  // Own files
+  for (const kind of ['regular', 'fajr']) {
+    const el = $(`[data-source="${kind}"]`, root);
+    if (!el) continue;
+    const src = await adhan.describeSource(kind, 'custom');
+    const own = src?.custom && src.kind === kind;
+    el.textContent = own ? `Saved: ${src.label}` : kind === 'fajr' ? 'Not set — the regular adhan is used for Fajr' : 'No file chosen';
+    $(`[data-remove="${kind}"]`, root).hidden = !own;
+  }
+  // Menu of built-in voices + "my own recording"
+  const list = $('#voice-list', root);
+  if (!list) return;
+  const voices = await adhan.loadCatalog();
+  const active = (await adhan.describeSource('regular', voice))?.voice ?? voice;
+  const ownSaved = !!(await adhan.describeSource('regular', 'custom'))?.custom;
+  const row = (id, title, sub, extra = '') => `
+    <label class="voice ${active === id ? 'on' : ''}">
+      <input type="radio" name="adhan-voice" value="${esc(id)}" ${active === id ? 'checked' : ''}>
+      <span class="voice-text"><strong>${esc(title)}</strong>${sub ? `<br><span class="muted small">${sub}</span>` : ''}</span>
+      ${extra}
+    </label>`;
+  list.innerHTML =
+    voices
+      .map((v) =>
+        row(
+          v.id,
+          v.name,
+          [esc(v.origin || ''), v.fajrFile ? 'includes Fajr adhan' : '', v.credit ? `© ${esc(v.credit)}${v.license ? ` · ${esc(v.license)}` : ''}` : ''].filter(Boolean).join(' · '),
+          `<button type="button" class="icon-btn" data-voice-preview="${esc(v.id)}" aria-label="Preview ${esc(v.name)}">▶</button>`,
+        ),
+      )
+      .join('') +
+    row('custom', 'My own recording', ownSaved ? 'Uses the file(s) below' : 'Choose an audio file below') +
+    (voices.length ? '' : '<p class="muted small">No built-in recordings are included in this copy of the app yet — choose your own file below.</p>');
+  $('#own-recordings', root).hidden = voices.length > 0 && active !== 'custom';
+}
+
+function bindAdhan(root) {
+  if (!$('[data-sec="adhan"]', root)) return;
+  refreshAdhanSources(root);
+  $$('input[name="adhan-mode"]', root).forEach((el) => {
+    el.onchange = () => {
+      store.update((st) => (st.adhan.mode = el.value));
+      toast(`Adhan: ${adhan.ADHAN_MODES[el.value]}`);
+      // Update the "Default (…)" labels without losing scroll position.
+      $$('[data-adhan-prayer] option[value="default"]', root).forEach((o) => (o.textContent = `Default (${adhan.ADHAN_MODES[el.value].toLowerCase()})`));
+    };
+  });
+  $$('[data-adhan]', root).forEach((el) => {
+    el.onchange = () => store.update((st) => (st.adhan[el.dataset.adhan] = +el.value));
+  });
+  $$('[data-adhan-prayer]', root).forEach((el) => {
+    el.onchange = () =>
+      store.update((st) => {
+        st.adhan.perPrayer = { ...st.adhan.perPrayer, [el.dataset.adhanPrayer]: el.value };
+      });
+  });
+  $('#voice-list', root).addEventListener('change', async (e) => {
+    if (e.target.name !== 'adhan-voice') return;
+    const id = e.target.value;
+    store.update((st) => (st.adhan.voice = id));
+    if (id !== 'custom') {
+      const v = (await adhan.loadCatalog()).find((x) => x.id === id);
+      if (v) adhan.warm(v); // keep a copy for offline use
+      toast(`Muezzin: ${v?.name || id}`);
+    }
+    refreshAdhanSources(root);
+  });
+  $('#voice-list', root).addEventListener('click', async (e) => {
+    const id = e.target.closest('[data-voice-preview]')?.dataset.voicePreview;
+    if (!id) return;
+    e.preventDefault();
+    const st = store.get().adhan;
+    if (adhan.nowPlaying()?.src.voice === id) return adhan.stop();
+    const r = await adhan.play('dhuhr', { mode: 'short', shortSeconds: st.shortSeconds, volume: st.volume, voice: id, title: 'Adhan preview' });
+    if (r.status !== 'playing') toast('Could not play this recording');
+  });
+  $$('[data-upload]', root).forEach((el) => {
+    el.onchange = async () => {
+      const file = el.files[0];
+      el.value = '';
+      if (!file) return;
+      if (file.type && !file.type.startsWith('audio/')) return toast('Please choose an audio file');
+      if (file.size > MAX_AUDIO_MB * 1048576) return toast(`File is too large (max ${MAX_AUDIO_MB} MB)`);
+      try {
+        await putFile(adhan.MEDIA_KEYS[el.dataset.upload], file);
+        store.update((st) => (st.adhan.voice = 'custom'));
+        toast(`Saved “${file.name}”`);
+      } catch {
+        toast('Could not save the file on this device');
+      }
+      refreshAdhanSources(root);
+    };
+  });
+  $$('[data-remove]', root).forEach((el) => {
+    el.onclick = async () => {
+      await deleteFile(adhan.MEDIA_KEYS[el.dataset.remove]).catch(() => {});
+      toast('Recording removed');
+      refreshAdhanSources(root);
+    };
+  });
+  $$('[data-preview]', root).forEach((el) => {
+    el.onclick = async () => {
+      if (el.dataset.preview === 'stop') return adhan.stop();
+      const st = store.get().adhan;
+      const r = await adhan.play('dhuhr', { mode: el.dataset.preview, shortSeconds: st.shortSeconds, volume: st.volume, voice: st.voice, title: 'Adhan preview' });
+      if (r.status === 'nosource') toast('Choose an adhan audio file first');
+      else if (r.status === 'blocked') toast('Your browser blocked audio — tap again');
+    };
+  });
+}
+
 export function render(root, nav) {
   const s = store.get();
   const loc = s.location;
@@ -216,6 +385,8 @@ export function render(root, nav) {
     <div class="hero-actions"><button class="btn" id="test-notif">Send test</button><button class="btn primary" id="export-ics">Export 30 days to calendar</button></div>
     <p class="muted small">Web apps can only notify while the app is open or recently in the background. For guaranteed alarms with the app closed, export to your phone’s calendar (Google, Apple, Outlook) — each prayer comes with its own alarm. Re-export monthly.</p>
   `)}
+
+  ${s.traditions.includes('islam') ? section('adhan', '🕌 Adhan (call to prayer)', adhanSection(s.adhan)) : ''}
 
   ${section('display', '🎨 Display', `
     <label class="field">Clock <select id="clock">
@@ -342,6 +513,8 @@ export function render(root, nav) {
     download('prayer-times.ics', buildICS(upcomingNotifyEvents(30)), 'text/calendar');
     toast('Calendar file downloaded — open it to import');
   };
+
+  bindAdhan(root);
 
   $('#clock', root).onchange = (e) => store.update((st) => (st.clock24 = e.target.value === '' ? null : e.target.value === '24'));
 
