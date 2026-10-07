@@ -40,6 +40,7 @@ export const DEFAULT_STATE = {
     custom: [], // [{ id, text, meaning, target }]
   },
   fired: {}, // notification de-duplication
+  lastBackup: null, // ISO time of the last backup saved or copied
   adhan: {
     mode: 'full', // 'full' | 'short' | 'silent' — default for every prayer
     shortSeconds: 20, // length of the "first part" before fading out

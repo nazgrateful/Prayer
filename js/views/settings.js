@@ -7,6 +7,7 @@ import { buildICS } from '../ics.js';
 import * as notify from '../notify.js';
 import * as adhan from '../adhan.js';
 import { putFile, deleteFile } from '../media.js';
+import * as backup from '../backup.js';
 import { seedChecklists } from './checklist.js';
 
 let openSection = null;
@@ -135,8 +136,103 @@ function upcomingNotifyEvents(days) {
   return events;
 }
 
+// ---------------------------------------------------------------------------
+// Backup
+
+let includeMedia = true;
+let prepared = null; // backup built ahead of the tap (iPhones only allow sharing right after a tap)
+
+function backupHint() {
+  const ua = navigator.userAgent;
+  if (/iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1))
+    return 'iPhone & iPad: choose <strong>Save to Files</strong> (iCloud Drive or On My iPhone), or send it to yourself by Mail or Messages.';
+  if (/Android/.test(ua)) return 'Android: choose <strong>Drive</strong>, <strong>Files</strong> or an email/messaging app — or it is saved to your <strong>Downloads</strong> folder.';
+  return 'The backup file is saved to your Downloads folder.';
+}
+
+async function prepareBackup() {
+  prepared = null;
+  try {
+    prepared = await backup.prepare({ includeMedia });
+  } catch {
+    prepared = null;
+  }
+}
+
+function markBackedUp() {
+  store.update((st) => (st.lastBackup = new Date().toISOString()));
+}
+
+async function restoreFrom(text, root, nav) {
+  let parsed;
+  try {
+    parsed = backup.parse(text);
+  } catch (x) {
+    return toast(x.message, 5000);
+  }
+  const info = backup.summary(parsed);
+  if (!confirm(`Restore this backup?${info ? `\n\n${info}` : ''}\n\nThe data on this phone will be replaced. (You can undo this right after.)`)) return;
+  try {
+    await backup.restore(parsed);
+    toast('Backup restored ✓');
+    setTimeout(() => location.reload(), 600);
+  } catch (x) {
+    toast(x.message || 'Could not restore the backup', 5000);
+    render(root, nav);
+  }
+}
+
+function bindBackup(root, nav) {
+  const sec = $('[data-sec="data"]', root);
+  if (sec.open) prepareBackup();
+  sec.addEventListener('toggle', () => sec.open && prepareBackup());
+  backup.hasOwnRecordings().then((has) => ($('#backup-media-row', root).hidden = !has));
+  $('#backup-media', root).onchange = (e) => {
+    includeMedia = e.target.checked;
+    prepareBackup();
+  };
+  $('#backup-save', root).onclick = async () => {
+    const ready = prepared || (await backup.prepare({ includeMedia }));
+    const how = await backup.save(ready);
+    if (how === 'cancelled') return;
+    markBackedUp();
+    toast(how === 'shared' ? 'Backup saved ✓' : `Backup saved to Downloads ✓ (${ready.file.name})`, 5000);
+    render(root, nav);
+  };
+  $('#backup-copy', root).onclick = async () => {
+    try {
+      await backup.copyText();
+      markBackedUp();
+      toast('Backup copied — paste it into Notes or an email to yourself', 5000);
+      render(root, nav);
+    } catch {
+      toast('Copying is not allowed here — use Save backup instead', 5000);
+    }
+  };
+  $('#restore', root).onchange = async (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (file) restoreFrom(await file.text(), root, nav);
+  };
+  $('#restore-text-btn', root).onclick = () => {
+    const text = $('#restore-text', root).value;
+    if (!text.trim()) return toast('Paste the backup text first');
+    restoreFrom(text, root, nav);
+  };
+  const undo = $('#restore-undo', root);
+  if (undo)
+    undo.onclick = () => {
+      if (!confirm('Put back the data you had before the last restore?')) return;
+      if (backup.undoRestore()) {
+        toast('Previous data put back ✓');
+        setTimeout(() => location.reload(), 600);
+      }
+    };
+}
+
 const ADHAN_PRAYER_NAMES = { fajr: 'Fajr', dhuhr: 'Dhuhr / Jumuʿah', asr: 'ʿAsr', maghrib: 'Maghrib', isha: 'ʿIshaʾ' };
 const MAX_AUDIO_MB = 15;
+const SHORT_MODE = { full: 'full', short: 'first part', silent: 'silent' };
 
 function adhanSection(a) {
   const opt = (value, label, current) => `<option value="${value}" ${current === value ? 'selected' : ''}>${label}</option>`;
@@ -157,7 +253,7 @@ function adhanSection(a) {
     <div class="adhan-grid">
       ${adhan.ADHAN_PRAYERS.map(
         (id) => `<label class="field">${ADHAN_PRAYER_NAMES[id]} <select data-adhan-prayer="${id}">
-          ${opt('default', `Default (${adhan.ADHAN_MODES[a.mode].toLowerCase()})`, a.perPrayer[id] || 'default')}
+          ${opt('default', `Default (${SHORT_MODE[a.mode]})`, a.perPrayer[id] || 'default')}
           ${Object.entries(adhan.ADHAN_MODES).map(([k, label]) => opt(k, label, a.perPrayer[id])).join('')}
         </select></label>`,
       ).join('')}
@@ -235,7 +331,7 @@ function bindAdhan(root) {
       store.update((st) => (st.adhan.mode = el.value));
       toast(`Adhan: ${adhan.ADHAN_MODES[el.value]}`);
       // Update the "Default (…)" labels without losing scroll position.
-      $$('[data-adhan-prayer] option[value="default"]', root).forEach((o) => (o.textContent = `Default (${adhan.ADHAN_MODES[el.value].toLowerCase()})`));
+      $$('[data-adhan-prayer] option[value="default"]', root).forEach((o) => (o.textContent = `Default (${SHORT_MODE[el.value]})`));
     };
   });
   $$('[data-adhan]', root).forEach((el) => {
@@ -396,12 +492,22 @@ export function render(root, nav) {
     </select></label>
   `)}
 
-  ${section('data', '💾 Your data', `
-    <p class="muted small">Everything is stored only on this device. Back it up or move it to another phone.</p>
+  ${section('data', '💾 Back up & restore', `
+    <p class="muted small">Your settings, history, counters and own adhan recordings are stored only on this phone. Save a backup to keep them safe or move them to a new phone.</p>
+    <p class="backup-status ${s.lastBackup ? '' : 'warn'}">${s.lastBackup ? `Last backup: ${esc(new Date(s.lastBackup).toLocaleString())}` : 'No backup saved yet'}</p>
+    <button class="btn primary block" id="backup-save">⬇ Save backup</button>
+    <p class="muted small">${backupHint()}</p>
+    <label class="switch small" id="backup-media-row" hidden><input type="checkbox" id="backup-media" ${includeMedia ? 'checked' : ''}><span>Include my own adhan recordings (bigger file)</span></label>
     <div class="hero-actions">
-      <button class="btn" id="backup">Download backup</button>
-      <label class="btn">Restore backup<input type="file" id="restore" accept="application/json" hidden></label>
+      <label class="btn">⬆ Restore from file<input type="file" id="restore" hidden></label>
+      <button class="btn" id="backup-copy">Copy as text</button>
     </div>
+    <details class="restore-text">
+      <summary class="small">Restore from copied text</summary>
+      <textarea id="restore-text" rows="4" placeholder="Paste the backup text here"></textarea>
+      <button class="btn" id="restore-text-btn">Restore</button>
+    </details>
+    ${backup.hasUndo() ? '<button class="link-btn" id="restore-undo">Undo last restore</button><br>' : ''}
     <button class="link-btn danger" id="reset">Reset app</button>
   `)}
 
@@ -518,16 +624,7 @@ export function render(root, nav) {
 
   $('#clock', root).onchange = (e) => store.update((st) => (st.clock24 = e.target.value === '' ? null : e.target.value === '24'));
 
-  $('#backup', root).onclick = () => download(`prayer-backup-${dateKey(today())}.json`, store.exportJSON(), 'application/json');
-  $('#restore', root).onchange = async (e) => {
-    try {
-      store.importJSON(await e.target.files[0].text());
-      toast('Backup restored');
-      render(root, nav);
-    } catch (x) {
-      toast(x.message || 'Could not read backup');
-    }
-  };
+  bindBackup(root, nav);
   $('#reset', root).onclick = () => {
     if (confirm('Delete all settings, checklists and history on this device?')) {
       store.reset();
